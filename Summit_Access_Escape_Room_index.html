@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Summit Access: Climate Escape Room</title>
+<style>
+:root{--navy:#000E54;--org:#D44500;--orgd:#a83600;--ink:#1c2233;--mut:#5b6377;--bg:#f5f3ef;--card:#fff;--line:#d9d5cc;--ok:#1f7a45;--okbg:#e6f4ec;--bad:#a4262c;--badbg:#fbeaea;--hint:#fff4d6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Verdana,system-ui,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:16px}
+header.top{background:var(--navy);color:#fff;border-bottom:5px solid var(--org)}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px}
+h1,h2,h3{font-family:Georgia,serif;margin:.2em 0}
+h1{font-size:1.35rem}
+.stat{font-size:.82rem;opacity:.95}
+.stat b{color:#ffd9c2}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin:14px 0}
+.btn{background:var(--org);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;font-weight:bold;cursor:pointer}
+.btn:hover{background:var(--orgd)}
+.btn.alt{background:#fff;color:var(--navy);border:2px solid var(--navy)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:6px 12px;font-size:.85rem}
+input[type=text],textarea{width:100%;padding:10px;border:2px solid var(--line);border-radius:8px;font:inherit}
+input:focus,textarea:focus,button:focus-visible{outline:3px solid #f2a46f}
+label{font-weight:bold;font-size:.9rem;display:block;margin:10px 0 4px}
+.doors{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.door{border:2px solid var(--line);border-radius:10px;padding:14px;background:#fff;text-align:left;font:inherit;cursor:pointer;color:var(--ink)}
+.door .n{font-size:.75rem;color:var(--mut);font-weight:bold;letter-spacing:.06em}
+.door h3{font-size:1.05rem;color:var(--navy)}
+.door.open{border-color:var(--ok);background:var(--okbg)}
+.door.locked{opacity:.55;cursor:not-allowed;background:#eee}
+.door .code{font-family:Consolas,monospace;font-weight:bold;color:var(--ok)}
+.bar{height:8px;background:#e5e1d8;border-radius:5px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--org)}
+.tier{display:inline-block;background:var(--navy);color:#fff;border-radius:5px;padding:1px 9px;font-size:.8rem;font-weight:bold}
+.role{background:#eef1fb;border-left:5px solid var(--navy);padding:8px 12px;border-radius:6px;font-size:.9rem;margin:10px 0}
+.opt{display:block;width:100%;text-align:left;margin:8px 0;padding:11px 14px;border:2px solid var(--line);background:#fff;border-radius:8px;font:inherit;cursor:pointer;color:var(--ink)}
+.opt:hover:not([disabled]){border-color:var(--navy)}
+.opt.gone{background:#f0eded;color:#888;text-decoration:line-through;cursor:not-allowed}
+.opt.right{background:var(--okbg);border-color:var(--ok)}
+.fb{padding:10px 14px;border-radius:8px;margin:10px 0;font-size:.95rem}
+.fb.ok{background:var(--okbg);border:1px solid var(--ok)}
+.fb.no{background:var(--badbg);border:1px solid var(--bad)}
+.fb.hint{background:var(--hint);border:1px solid #e3c35a}
+.keys{display:flex;gap:8px;flex-wrap:wrap}
+.key{font-family:Consolas,monospace;border:2px dashed var(--line);border-radius:6px;padding:4px 10px;font-weight:bold;color:#aaa}
+.key.got{border-style:solid;border-color:var(--ok);color:var(--ok);background:var(--okbg)}
+.code-box{font-family:Consolas,monospace;background:#0b1233;color:#ffd9c2;padding:14px;border-radius:8px;word-break:break-all;font-size:.95rem;white-space:pre-wrap}
+.chk{list-style:none;padding:0;margin:8px 0}
+.chk li{padding:4px 0}
+.chk .y{color:var(--ok)} .chk .n{color:var(--bad)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.small{font-size:.85rem;color:var(--mut)}
+@media(max-width:520px){.wrap{padding:12px}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<h1>Summit Access <span style="font-weight:normal;font-size:.9rem;opacity:.85">Climate Escape Room</span></h1>
+<div class="stat" id="hud"></div>
+</div></header>
+<main class="wrap" id="app"></main>
+
+<script>
+/* ===== CONFIG (instructor can edit) ===== */
+var CONFIG={
+  HINTS_TOTAL:6,
+  DECK_NOTE:"Your slide deck (PDF) from your instructor is your resource. Use it, and talk it through as a team.",
+  SUBMIT_NOTE:"Copy your completion code and final answer into the Canvas discussion board."
+};
+var STORE="summitAccessV1";
+
+/* ===== CONTENT: 5 doors x 5 clues (100-500) ===== */
+var DOORS=[
+{id:"d1",title:"Six Spheres & Carbon",code:"SPHERES",
+ intro:"The climate system is the interaction of six spheres. Carbon is how they trade with each other.",
+ clues:[
+ {t:100,q:"The climate system is best described as:",o:["One layer of gases around Earth","The interaction of six spheres of Earth","The average temperature of the oceans","The study of daily weather"],a:1,
+  h:"Think 'system': parts that interact, not a single layer.",e:"The climate system is the interaction of six spheres (the slides' title image shows them)."},
+ {t:200,q:"Biogeochemical cycles, such as the carbon cycle, are primarily about:",o:["Energy transfer from the Sun to Earth","Chemical fluxes between living and nonliving reservoirs","The motion of tectonic plates","Daily changes in temperature and precipitation"],a:1,
+  h:"'Bio' = living, 'geo' = nonliving. What moves between them?",e:"Biogeochemical cycles track chemicals (like carbon) moving among living organisms, the atmosphere, oceans, and rocks."},
+ {t:300,q:"Which is NOT one of the near-surface carbon reservoirs named in the slides?",o:["The ocean","The atmosphere","Organisms (living and dead)","Earth's inner core"],a:3,
+  h:"The slides say 'near-surface.' Which option is deep inside the planet?",e:"Near-surface reservoirs are the ocean, atmosphere, organisms, and rocks."},
+ {t:400,q:"Photosynthesis moves carbon dioxide from the ________ into ________.",o:["atmosphere / living organisms","rocks / the ocean","organisms / the atmosphere","the ocean / rocks"],a:0,
+  h:"Plants take in CO2. Where do they get it, and what do they make with it?",e:"Photosynthesis absorbs CO2 from the air (or water) and builds it into organisms, a flux from atmosphere to life."},
+ {t:500,q:"Burning coal changes which carbon flux?",o:["Atmosphere to rocks","Ocean to atmosphere","Rocks (long-stored carbon) to the atmosphere","Organisms to the ocean"],a:2,
+  h:"Coal is carbon that was stored underground. Where does combustion send it?",e:"Combustion releases carbon stored in coal (a rock reservoir) to the atmosphere as CO2, moving it between spheres much faster than natural processes."}
+ ]},
+{id:"d2",title:"Weather vs. Climate",code:"CLIMATE",
+ intro:"Same sky, two very different ideas. Know which one you are talking about.",
+ clues:[
+ {t:100,q:"Which best describes climate (as opposed to weather)?",o:["The temperature at noon today in Syracuse","The wind direction during yesterday's storm","The long-term average weather patterns over many years in a region","The humidity at 3 p.m. this afternoon"],a:2,
+  h:"Look for the answer that spans many years.",e:"Climate is the long-term average (prevailing) weather over many years; weather is short-term atmospheric conditions."},
+ {t:200,q:"Which statement is about climate, not weather?",o:["Syracuse got 12 inches of snow last night","Syracuse averages 100+ inches of snow each year","It is 28 °F in Syracuse right now","Tomorrow's forecast is rain"],a:1,
+  h:"Which one would still be true when you average many winters?",e:"An annual average over many years describes climate. The others are single events or forecasts."},
+ {t:300,q:"Central New York's climate is:",o:["Savanna (dry tropical)","Humid continental, with four distinct seasons","Desert","Polar"],a:1,
+  h:"Four seasons and lots of snow.",e:"Central NY is humid continental: four distinct seasons and 100+ inches of annual snowfall."},
+ {t:400,q:"What sets southern Florida's climate apart from the rest of Florida?",o:["It has four distinct seasons","It is savanna (dry tropical) with alternating wet and dry seasons","It has no rain at all","It is colder than Syracuse"],a:1,
+  h:"Look for the answer about wet AND dry seasons.",e:"Southern Florida is savanna-dry tropical with alternating wet and dry seasons. The rest of Florida is subtropical humid, where seasons are less obvious."},
+ {t:500,q:"Syracuse has a record-cold week in January. A classmate says, \"So global warming isn't real.\" What is the best reply?",o:["You are right; cold weeks disprove warming","A cold week is weather. Climate is the long-term average over many years","Weather and climate are the same thing","Syracuse is too small to have a climate"],a:1,
+  h:"How long is a week compared with a climate record?",e:"One cold week is short-term weather. Climate is judged from long-term averages over many years, so one cold spell cannot prove or disprove a trend."}
+ ]},
+{id:"d3",title:"Seasons & Circulation",code:"TILT",
+ intro:"Why the seasons happen, and how air and water move heat around the planet.",
+ clues:[
+ {t:100,q:"Earth's seasons are caused mainly by:",o:["Earth being closer to the Sun in summer","The tilt of Earth's axis","Changes in the Sun's brightness each month","Ocean currents"],a:1,
+  h:"It is not about distance.",e:"The tilt of Earth relative to its plane of travel around the Sun causes seasons."},
+ {t:200,q:"When the Northern Hemisphere is tilted toward the Sun, the Southern Hemisphere is in:",o:["Summer","Spring","Winter","The same season"],a:2,
+  h:"The hemispheres get opposite amounts of direct sunlight.",e:"The hemisphere pointing toward the Sun has summer while the opposite hemisphere has winter."},
+ {t:300,q:"Which statement about circulation is correct?",o:["Ocean circulation drives atmospheric circulation","Atmospheric circulation drives oceanic circulation","They are completely unrelated","Neither affects regional climate"],a:1,
+  h:"Think of wind pushing on the sea surface.",e:"Atmospheric circulation drives oceanic circulation, and together they distribute heat and shape regional climates."},
+ {t:400,q:"In a Hadley cell, air that sinks at about 30° latitude tends to bring:",o:["Heavy tropical rain","Dry conditions (the world's great deserts)","Constant snow","Hurricanes"],a:1,
+  h:"Air that is sinking warms and dries out.",e:"Air rises at the equator (rain) and sinks near 30° latitude, producing dry conditions where many deserts are found."},
+ {t:500,q:"In thermohaline circulation, cold, very salty seawater will:",o:["Become less dense and rise","Become denser and sink, driving deep circulation","Stay exactly where it is","Turn to fresh water"],a:1,
+  h:"'Thermo' = temperature, 'haline' = salt. Which makes water heavier?",e:"Differences in density, from temperature and salinity, generate circulation. Cold, salty water is denser and sinks."}
+ ]},
+{id:"d4",title:"Milankovitch Cycles",code:"ORBIT",
+ intro:"Slow, predictable changes in Earth's orbit pace the ice ages.",
+ clues:[
+ {t:100,q:"Milankovitch cycles explain long-term climate variation mainly by changes in:",o:["Volcanic eruption frequency","Ocean salinity","Earth's orbital shape, tilt, and wobble","Human greenhouse gas emissions"],a:2,
+  h:"They are named for orbital geometry.",e:"Milankovitch cycles involve eccentricity, obliquity, and precession, which redistribute sunlight over tens to hundreds of thousands of years."},
+ {t:200,q:"Eccentricity describes changes in:",o:["The shape of Earth's orbit (about 100,000-year cycle)","The tilt of Earth's axis","The wobble of Earth's axis","The brightness of the Sun"],a:0,
+  h:"Eccentric = off-center. Is the orbit round or stretched?",e:"Eccentricity is the changing shape of Earth's orbit, on a roughly 100,000-year cycle."},
+ {t:300,q:"Obliquity (axial tilt) changes on a cycle of about:",o:["23,000 years","41,000 years","100,000 years","1,000 years"],a:1,
+  h:"It is the middle one of the three cycles.",e:"Obliquity cycles about every 41,000 years; more tilt means more severe seasons."},
+ {t:400,q:"Which pairing of cycle and period is correct?",o:["Precession: 23,000 years","Precession: 100,000 years","Eccentricity: 23,000 years","Obliquity: 100,000 years"],a:0,
+  h:"The wobble is the fastest of the three.",e:"Eccentricity ≈ 100,000, obliquity ≈ 41,000, precession ≈ 23,000 years."},
+ {t:500,q:"Why can't Milankovitch cycles explain the rapid warming measured since the 1860s?",o:["They only affect the oceans","They operate over tens of thousands of years, far too slowly","They stopped long ago","They only change the Moon's orbit"],a:1,
+  h:"Compare 23,000+ years to about 160 years.",e:"Milankovitch cycles work on timescales of tens to hundreds of thousands of years, so they cannot account for change over the instrumental record."}
+ ]},
+{id:"d5",title:"Studying Climate",code:"EVIDENCE",
+ intro:"How scientists know the past, measure the present, and project the future.",
+ clues:[
+ {t:100,q:"Direct instrumental measurements of climate begin around:",o:["The 1860s","The year 1000","The 1980s","The 1700s B.C."],a:0,
+  h:"Think thermometers and weather stations in the 19th century.",e:"The instrumental record starts in about the 1860s."},
+ {t:200,q:"What is a key role of the Intergovernmental Panel on Climate Change (IPCC)?",o:["Controlling global carbon emissions directly","Running multiple climate models and assessing the range of climate responses","Setting national climate policies for each country","Measuring ocean salinity from ships"],a:1,
+  h:"The IPCC assesses; it does not regulate.",e:"The IPCC (est. 1988) synthesizes science by comparing many models. Its reports are updated every few years; the sixth assessment cycle (AR6) was completed in 2023."},
+ {t:300,q:"What do ice cores tell us?",o:["Future temperatures","The greenhouse gas concentrations of the past atmosphere","The current weather","The age of the Moon"],a:1,
+  h:"Ancient air gets trapped in the ice.",e:"Ice cores trap tiny bubbles of ancient air, giving a direct measure of past greenhouse gas concentrations."},
+ {t:400,q:"Which is NOT a main greenhouse gas listed in the slides?",o:["Carbon dioxide","Methane","Nitrogen gas (N₂)","Nitrous oxide"],a:2,
+  h:"The most abundant gas in the air is not a greenhouse gas.",e:"Main GHGs include CO₂, methane, nitrous oxide, tropospheric ozone, and CFCs. Nitrogen gas does not trap heat."},
+ {t:500,q:"Why does the IPCC report a range of future temperatures rather than one number?",o:["Scientists cannot agree that warming is happening","Models have errors in input data and accuracy, so projections come with uncertainty, though all show rapid warming","Because the future is not affected by emissions","To confuse policymakers"],a:1,
+  h:"All models agree on the direction. What differs?",e:"Predictions have errors from input data and model accuracy. All models predict rapid warming, with varying degrees of uncertainty and temperature ranges."}
+ ]}
+];
+
+/* Final vault: checklist formative feedback */
+var VAULT={
+ q:"Summit question: Name TWO lines of evidence scientists use to link present-day climate change to greenhouse gases, and explain why future projections come as a range instead of one number.",
+ min:25,need:3,
+ items:[
+  {k:"A line of evidence: ice cores (ancient air bubbles / past GHG levels)",re:/ice\s*core|bubbles?|ancient air|past (atmosphere|co2|greenhouse)/i},
+  {k:"A second line of evidence: the instrumental / direct measurement record (since the 1860s), or the rise in CO₂ and other GHGs",re:/instrument|thermometer|direct measure|1860|measurements?|records?\b|co2|carbon dioxide|methane|greenhouse gas/i},
+  {k:"The role of the IPCC or climate models in the assessment",re:/ipcc|model|assessment|intergovernmental/i},
+  {k:"Why a range: uncertainty or error in input data and/or model accuracy",re:/uncertain|error|range|accura|input data|differ|vary|varying/i}
+ ]};
+
+/* ===== STATE ===== */
+var S=null;
+function fresh(){return{step:"setup",team:"",members:[],t0:0,done:false,tEnd:0,hints:0,misses:0,opened:{},prog:{},gone:{},order:{},hintShown:{},vault:{text:"",ok:false},cur:null};}
+function load(){try{var r=localStorage.getItem(STORE);if(r){var o=JSON.parse(r);if(o&&o.step)return o;}}catch(e){}return fresh();}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}}
+S=load();
+
+function $(i){return document.getElementById(i);}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function fmt(ms){var s=Math.floor(ms/1000),m=Math.floor(s/60);return m+":"+("0"+(s%60)).slice(-2);}
+function elapsed(){if(!S.t0)return 0;return(S.done?S.tEnd:Date.now())-S.t0;}
+function doorIdx(id){for(var i=0;i<DOORS.length;i++)if(DOORS[i].id===id)return i;return -1;}
+function doorDone(i){return !!S.opened[DOORS[i].id];}
+function unlocked(i){return i===0||doorDone(i-1)||true;} /* any order allowed */
+function captain(i){var m=S.members;if(!m.length)return"";return m[i%m.length];}
+function shuffle(n){var a=[];for(var i=0;i<n;i++)a.push(i);for(var j=n-1;j>0;j--){var k=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[k];a[k]=t;}return a;}
+function hud(){
+ var h="";
+ if(S.step!=="setup"){h='Team <b>'+esc(S.team)+'</b> &nbsp;|&nbsp; Hints left <b>'+(CONFIG.HINTS_TOTAL-S.hints)+'</b> &nbsp;|&nbsp; Time <b id="clock">'+fmt(elapsed())+'</b>';}
+ $("hud").innerHTML=h;
+}
+setInterval(function(){var c=$("clock");if(c&&!S.done)c.textContent=fmt(elapsed());},1000);
+
+/* ===== RENDER ===== */
+function render(){hud();save();
+ if(S.step==="setup")return setup();
+ if(S.step==="map")return map();
+ if(S.step==="clue")return clue();
+ if(S.step==="vault")return vaultView();
+ if(S.step==="end")return endView();
+}
+function setup(){
+ $("app").innerHTML='<div class="card"><h2>Summit Access</h2>'+
+ '<p>Your team is heading to the Global Climate Summit, but the doors are locked. Open all five by answering the clues together, collect the five code words, and then crack the final vault.</p>'+
+ '<ul><li><b>Talk first, answer second.</b> Agree as a team before anyone clicks.</li>'+
+ '<li>The <b>captain</b> role rotates by door. The captain clicks, everyone discusses.</li>'+
+ '<li>A wrong answer crosses that choice out. You have <b>'+CONFIG.HINTS_TOTAL+' hints</b> to share across the whole game.</li>'+
+ '<li>Your finish code shows your time, hints and misses.</li></ul>'+
+ '<p class="small">'+esc(CONFIG.DECK_NOTE)+'</p></div>'+
+ '<div class="card"><label for="tn">Team name</label><input type="text" id="tn" maxlength="30" placeholder="e.g., The Carbon Copies" value="'+esc(S.team)+'">'+
+ '<label>Team members (1 to 4 first names)</label>'+
+ [0,1,2,3].map(function(i){return '<input type="text" class="mem" maxlength="20" style="margin-bottom:6px" placeholder="Member '+(i+1)+'" value="'+esc(S.members[i]||"")+'">';}).join("")+
+ '<p class="small" id="err" style="color:#a4262c"></p>'+
+ '<button class="btn" id="go">Enter the Summit</button></div>';
+ $("go").onclick=function(){
+  var t=$("tn").value.replace(/^\s+|\s+$/g,"");
+  var ms=[].slice.call(document.querySelectorAll(".mem")).map(function(x){return x.value.replace(/^\s+|\s+$/g,"");}).filter(Boolean);
+  if(!t){$("err").textContent="Please give your team a name.";return;}
+  if(!ms.length){$("err").textContent="Please enter at least one team member.";return;}
+  S.team=t;S.members=ms;S.t0=Date.now();S.step="map";render();};
+}
+function map(){
+ var done=0;DOORS.forEach(function(d,i){if(doorDone(i))done++;});
+ var h='<div class="card"><h2>The Doors</h2><p>Open any door, in any order. Doors opened: <b>'+done+' of 5</b>.</p><div class="keys" aria-label="Code words">';
+ DOORS.forEach(function(d,i){h+='<span class="key'+(doorDone(i)?' got':'')+'">'+(doorDone(i)?d.code:'•••••')+'</span>';});
+ h+='</div></div><div class="doors">';
+ DOORS.forEach(function(d,i){
+  var n=S.prog[d.id]||0,od=doorDone(i);
+  h+='<button class="door'+(od?' open':'')+'" data-i="'+i+'"'+(od?'':'')+'><div class="n">DOOR '+(i+1)+(od?' · OPEN':'')+'</div><h3>'+esc(d.title)+'</h3>'+
+  '<div class="small">'+esc(d.intro)+'</div><div class="bar"><i style="width:'+(n/5*100)+'%"></i></div>'+
+  '<div class="small">'+(od?'Code word: <span class="code">'+d.code+'</span>':n+' of 5 clues solved · Captain: <b>'+esc(captain(i))+'</b>')+'</div></button>';
+ });
+ h+='</div><div class="card"><h3>The Final Vault</h3>'+(done===5?'<p>All five doors are open. Time for the summit question.</p><button class="btn" id="tov">Approach the vault</button>':'<p class="small">Open all five doors to unlock the vault.</p>')+'</div>'+
+ '<p><button class="btn alt sm" id="rs">Start over</button> <span id="rsz"></span></p>';
+ $("app").innerHTML=h;
+ [].forEach.call(document.querySelectorAll(".door"),function(b){b.onclick=function(){var i=+b.getAttribute("data-i");if(doorDone(i))return;S.cur=i;S.step="clue";render();};});
+ if($("tov"))$("tov").onclick=function(){S.step="vault";render();};
+ $("rs").onclick=startOverAsk;
+}
+function startOverAsk(){
+ var z=$("rs").parentNode;z.innerHTML='<b>Start over? All progress and your timer will be cleared.</b> <button type="button" class="btn sm" id="yes">Yes, start over</button> <button type="button" class="btn alt sm" id="no">Keep playing</button>';
+ $("yes").onclick=function(){S=fresh();render();};$("no").onclick=function(){render();};$("no").focus();
+}
+function curClue(){var d=DOORS[S.cur],n=S.prog[d.id]||0;return{d:d,n:n,c:d.clues[n]};}
+function clue(){
+ var x=curClue(),d=x.d,c=x.c,key=d.id+x.n;
+ if(!S.order[key])S.order[key]=shuffle(c.o.length);
+ var gone=S.gone[key]||[],shownHint=S.hintShown[key];
+ var h='<div class="card"><div class="row" style="justify-content:space-between"><div class="small"><b>Door '+(S.cur+1)+': '+esc(d.title)+'</b> · Clue '+(x.n+1)+' of 5</div><span class="tier">'+c.t+'</span></div>'+
+ '<div class="bar"><i style="width:'+(x.n/5*100)+'%"></i></div>'+
+ '<div class="role">Captain for this door: <b>'+esc(captain(S.cur))+'</b>. Discuss as a team, then answer.</div>'+
+ '<h3 style="font-size:1.1rem;line-height:1.4">'+esc(c.q)+'</h3><div id="opts">';
+ S.order[key].forEach(function(oi){var g=gone.indexOf(oi)>-1;h+='<button class="opt'+(g?' gone':'')+'" data-o="'+oi+'"'+(g?' disabled':'')+'>'+esc(c.o[oi])+'</button>';});
+ h+='</div><div id="fb">'+(shownHint?'<div class="fb hint"><b>Hint:</b> '+esc(c.h)+'</div>':'')+'</div>'+
+ '<div class="row"><button class="btn alt sm" id="hb"'+((shownHint||S.hints>=CONFIG.HINTS_TOTAL)?' disabled':'')+'>Use a hint ('+(CONFIG.HINTS_TOTAL-S.hints)+' left)</button><button class="btn alt sm" id="bk">Back to doors</button></div></div>';
+ $("app").innerHTML=h;
+ [].forEach.call(document.querySelectorAll(".opt"),function(b){b.onclick=function(){pick(+b.getAttribute("data-o"),key,c);};});
+ $("hb").onclick=function(){if(S.hints>=CONFIG.HINTS_TOTAL||S.hintShown[key])return;S.hints++;S.hintShown[key]=1;render();};
+ $("bk").onclick=function(){S.step="map";render();};
+}
+function pick(oi,key,c){
+ if(oi===c.a){
+  var btns=document.querySelectorAll(".opt");[].forEach.call(btns,function(b){b.disabled=true;if(+b.getAttribute("data-o")===c.a)b.classList.add("right");});
+  var d=DOORS[S.cur],last=(S.prog[d.id]||0)===4;
+  $("fb").innerHTML='<div class="fb ok"><b>Correct.</b> '+esc(c.e)+'</div>';
+  $("hb").disabled=true;
+  var nb=document.createElement("button");nb.className="btn";nb.id="nx";nb.textContent=last?"Open the door":"Next clue";
+  $("hb").parentNode.insertBefore(nb,$("hb"));
+  nb.onclick=function(){S.prog[d.id]=(S.prog[d.id]||0)+1;
+   if(last){S.opened[d.id]=1;S.step="map";doorOpen(d);}else render();};
+  save();
+ }else{
+  S.misses++;(S.gone[key]=S.gone[key]||[]).push(oi);save();hud();
+  var b=document.querySelector('.opt[data-o="'+oi+'"]');if(b){b.classList.add("gone");b.disabled=true;}
+  $("fb").innerHTML=(S.hintShown[key]?'<div class="fb hint"><b>Hint:</b> '+esc(c.h)+'</div>':'')+'<div class="fb no"><b>Not quite.</b> That choice is crossed out. Huddle up and try again'+(S.hintShown[key]?'.':', or spend a hint.')+'</div>';
+ }
+}
+function doorOpen(d){
+ hud();
+ $("app").innerHTML='<div class="card" style="text-align:center"><h2>Door open!</h2><p>'+esc(d.title)+' is unlocked. Your code word is:</p><p class="code-box" style="font-size:1.6rem;text-align:center;letter-spacing:.12em">'+d.code+'</p><p class="small">It is saved on your key ring. You will need all five for the vault.</p><button class="btn" id="bm">Back to the doors</button></div>';
+ $("bm").onclick=function(){S.step="map";render();};
+}
+function hashStr(s){var h=5381;for(var i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))|0;}return Math.abs(h).toString(36).toUpperCase();}
+function words(t){return(t.match(/\S+/g)||[]).length;}
+function vaultView(){
+ var v=S.vault;
+ var h='<div class="card"><h2>The Final Vault</h2><div class="keys">';
+ DOORS.forEach(function(d){h+='<span class="key got">'+d.code+'</span>';});
+ h+='</div><p style="margin-top:12px">'+esc(VAULT.q)+'</p><p class="small">Discuss as a team, then have the captain type your answer in your own words (at least '+VAULT.min+' words).</p>'+
+ '<textarea id="vt" rows="7" placeholder="Our team\'s answer...">'+esc(v.text)+'</textarea><div class="small" id="wc"></div>'+
+ '<div id="vfb"></div><div class="row" style="margin-top:10px"><button class="btn" id="vc">Check our answer</button><button class="btn alt sm" id="bk">Back to doors</button></div></div>';
+ $("app").innerHTML=h;
+ var ta=$("vt");function wc(){$("wc").textContent=words(ta.value)+" words";}wc();
+ ta.oninput=function(){wc();S.vault.text=ta.value;save();};
+ $("bk").onclick=function(){S.step="map";render();};
+ $("vc").onclick=function(){
+  var t=ta.value;S.vault.text=t;
+  if(words(t)<VAULT.min){$("vfb").innerHTML='<div class="fb no">Your answer needs at least '+VAULT.min+' words. You have '+words(t)+'.</div>';return;}
+  var hit=0,li="";VAULT.items.forEach(function(it){var y=it.re.test(t);if(y)hit++;li+='<li class="'+(y?'y':'n')+'">'+(y?'✔ ':'✘ ')+esc(it.k)+'</li>';});
+  if(hit>=VAULT.need){S.vault.ok=true;S.done=true;S.tEnd=Date.now();S.step="end";render();}
+  else $("vfb").innerHTML='<div class="fb no"><b>The vault is still locked.</b> Your answer needs to cover at least '+VAULT.need+' of these 4 ideas. Revise and try again.<ul class="chk">'+li+'</ul></div>';
+ };
+}
+function codeStr(){
+ var core=S.team.replace(/[^A-Za-z0-9]/g,"").toUpperCase().slice(0,12)||"TEAM";
+ var m=Math.round(elapsed()/60000);
+ var base=core+"|"+m+"|"+S.hints+"|"+S.misses;
+ return"SUMMIT-"+core+"-T"+m+"M-H"+S.hints+"-X"+S.misses+"-"+hashStr(base).slice(0,5);
+}
+function endView(){
+ hud();
+ var code=codeStr();
+ var out="Team: "+S.team+" ("+S.members.join(", ")+")\nCompletion code: "+code+"\nTime: "+fmt(elapsed())+" | Hints used: "+S.hints+" | Wrong answers: "+S.misses+"\n\nOur final answer:\n"+S.vault.text;
+ $("app").innerHTML='<div class="card" style="text-align:center"><h2>The summit is open!</h2><p>Your team escaped in <b>'+fmt(elapsed())+'</b> using <b>'+S.hints+'</b> hint'+(S.hints===1?'':'s')+' and <b>'+S.misses+'</b> wrong answer'+(S.misses===1?'':'s')+'. Well done, '+esc(S.team)+'.</p></div>'+
+ '<div class="card"><h3>Your completion code</h3><div class="code-box" id="cb">'+esc(out)+'</div>'+
+ '<p>'+esc(CONFIG.SUBMIT_NOTE)+'</p><div class="row"><button class="btn" id="cp">Copy to clipboard</button><span class="small" id="cm"></span></div></div>'+
+ '<p><button class="btn alt sm" id="rs">Start over</button> <span id="rsz"></span></p>';
+ $("cp").onclick=function(){
+  function ok(){$("cm").textContent="Copied. Paste it into Canvas.";}
+  function fb(){var r=document.createRange();r.selectNodeContents($("cb"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand("copy");ok();}catch(e){$("cm").textContent="Select the text above and copy it (Ctrl/Cmd+C).";}}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(out).then(ok,fb);}else fb();
+ };
+ $("rs").onclick=startOverAsk;
+}
+render();
+</script>
+</body>
+</html>
